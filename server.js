@@ -1,98 +1,135 @@
+// server.js
+
 const express = require('express');
+const mongoose = require('mongoose');
+const bodyParser = require('body-parser');
 const multer = require('multer');
 const { google } = require('googleapis');
 const path = require('path');
-// Модуль fs больше не нужен, так как мы не работаем с локальной файловой системой
-// const fs = require('fs');
 
 const app = express();
-// Переменная port больше не нужна, так как мы не вызываем app.listen()
-// const port = 3000;
 
-// Указываем путь к нашему фронтенду
-// На Vercel статические файлы обрабатываются автоматически из папки public,
-// но эта строка не мешает и полезна для локальной отладки.
+// --- MIDDLEWARE ---
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(bodyParser.json()); // Для парсинга JSON-тел запросов
 
-// Настройки для приема файлов Multer
-// Используем memoryStorage, чтобы хранить файл в оперативной памяти,
-// что необходимо для бессерверных сред вроде Vercel.
-const storage = multer.memoryStorage();
-const upload = multer({ storage: storage });
+// --- ПОДКЛЮЧЕНИЕ К MONGODB ---
+// Эту строку нужно будет добавить в переменные окружения на Vercel
+// под именем MONGO_URI
+const MONGO_URI = process.env.MONGO_URI; 
+mongoose.connect(MONGO_URI)
+  .then(() => console.log('MongoDB подключена успешно.'))
+  .catch(err => console.error('Ошибка подключения к MongoDB:', err));
 
-// Настройки Google Drive API
-const SCOPES = ['https://www.googleapis.com/auth/drive'];
-
-// Проверяем, есть ли переменная окружения с ключом
-// Эта проверка выполняется при "холодном старте" функции
-if (!process.env.GOOGLE_CREDENTIALS) {
-    // Важно выбросить ошибку, чтобы понять, что ключ не задан
-    throw new Error('Переменная окружения GOOGLE_CREDENTIALS не найдена!');
-}
-
-// Парсим JSON из переменной окружения
-let credentials;
-try {
-    credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS);
-} catch (e) {
-    // Обрабатываем ошибку парсинга JSON, если вдруг ключ скопирован неверно
-    console.error("Ошибка парсинга JSON из GOOGLE_CREDENTIALS:", e.message);
-    throw new Error('Неверный формат JSON в переменной GOOGLE_CREDENTIALS.');
-}
-
-
-// Создаем экземпляр аутентификации Google
-const auth = new google.auth.GoogleAuth({
-    credentials, // Используем объект с данными вместо пути к файлу
-    scopes: SCOPES,
+// --- МОДЕЛИ ДАННЫХ (СХЕМЫ) ---
+const UserSchema = new mongoose.Schema({
+    tgId: { type: String, required: true, unique: true },
+    firstName: String,
+    lastName: String,
+    username: String,
+    ageCategory: { type: String, enum: ['6-7', '8-9', '10-11'], required: true },
+    isAdmin: { type: Boolean, default: false }
 });
+const User = mongoose.model('User', UserSchema);
 
-// ID папки на Google Диске, куда будут загружаться файлы
-// Проверьте, что этот ID правильный для вашей папки
-const FOLDER_ID = '1vpI2bp6rXYAtrDcnFLMBEEn5eEOkiEaE'; // Ваш ID
+const CaseSchema = new mongoose.Schema({
+    title: { type: String, required: true },
+    description: String,
+    ispringUrl: { type: String, required: true },
+    ageCategory: { type: String, enum: ['6-7', '8-9', '10-11'], required: true },
+});
+const Case = mongoose.model('Case', CaseSchema);
 
-// API-эндпоинт для загрузки
-app.post('/upload', upload.single('file'), async (req, res) => {
+const SubmissionSchema = new mongoose.Schema({
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    caseId: { type: mongoose.Schema.Types.ObjectId, ref: 'Case', required: true },
+    googleDriveFileId: { type: String, required: true },
+    submittedAt: { type: Date, default: Date.now }
+});
+const Submission = mongoose.model('Submission', SubmissionSchema);
+
+// --- НАСТРОЙКИ GOOGLE DRIVE И MULTER (остаются как были) ---
+// ... ваш код для Google Drive и Multer (с memoryStorage) ...
+// Не забудьте FOLDER_ID
+const FOLDER_ID = '...';
+
+// --- API МАРШРУТЫ ---
+
+// 1. Регистрация нового пользователя
+app.post('/api/register', async (req, res) => {
     try {
-        // Проверяем, был ли файл вообще передан
-        if (!req.file) {
-            return res.status(400).send('Файл не был загружен.');
-        }
-
-        // Получаем экземпляр Drive API с нашей аутентификацией
-        const drive = google.drive({ version: 'v3', auth });
-
-        // Получаем данные файла из req.file (благодаря memoryStorage)
-        const { originalname, mimetype, buffer } = req.file;
-
-        // Создаем файл на Google Диске
-        const response = await drive.files.create({
-            requestBody: {
-                name: originalname,
-                mimeType: mimetype,
-                parents: [FOLDER_ID], // Указываем папку назначения
-            },
-            media: {
-                mimeType: mimetype,
-                // Используем поток из буфера для загрузки файла
-                body: require('stream').Readable.from(buffer),
-            },
-        });
-
-        // Временный файл не создавался, удалять ничего не нужно.
-
-        // Логируем успех и отправляем ответ клиенту
-        console.log('Файл успешно загружен:', response.data.name, response.data.id);
-        res.status(200).json({ message: 'Файл успешно загружен!', file: { name: response.data.name, id: response.data.id } }); // Отправляем имя и ID загруженного файла
-
+        const { tgId, firstName, lastName, username, ageCategory } = req.body;
+        const newUser = new User({ tgId, firstName, lastName, username, ageCategory });
+        await newUser.save();
+        res.status(201).json(newUser);
     } catch (error) {
-        // Логируем ошибку и отправляем ответ об ошибке
-        console.error('Ошибка при загрузке файла:', error); // Логируем полную ошибку для диагностики
-        res.status(500).send('Произошла ошибка на сервере при загрузке файла.');
+        res.status(500).json({ message: 'Ошибка регистрации', error });
     }
 });
 
-// Это самая важная строка для Vercel!
-// Мы экспортируем наше express-приложение,
-// чтобы Vercel мог его использовать как бессерверную функцию.
+// 2. Получение данных текущего пользователя
+app.get('/api/user/me', async (req, res) => {
+    const tgId = req.query.tgId;
+    const user = await User.findOne({ tgId });
+    if (user) {
+        // Также получим список отправленных им решений
+        const submissions = await Submission.find({ userId: user._id }).select('caseId');
+        res.json({ user, submissions });
+    } else {
+        res.status(404).json({ message: 'Пользователь не найден' });
+    }
+});
+
+// 3. Получение списка кейсов для категории пользователя
+app.get('/api/cases', async (req, res) => {
+    const { ageCategory } = req.query;
+    const cases = await Case.find({ ageCategory });
+    res.json(cases);
+});
+
+// 4. Загрузка файла (МОДЕРНИЗИРОВАННАЯ)
+// Теперь мы принимаем userId и caseId вместе с файлом
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
+
+app.post('/upload', upload.single('file'), async (req, res) => {
+    const { userId, caseId } = req.body; // Получаем ID из тела запроса
+    if (!userId || !caseId || !req.file) {
+        return res.status(400).send('Не хватает данных: userId, caseId или файла.');
+    }
+
+    // ... ваш код для загрузки файла на Google Drive ...
+    // После успешной загрузки вы получаете `response.data.id` от Google
+    const googleFileId = response.data.id;
+
+    // Сохраняем информацию о решении в нашу базу
+    const newSubmission = new Submission({
+        userId,
+        caseId,
+        googleDriveFileId: googleFileId
+    });
+    await newSubmission.save();
+    
+    res.status(200).json({ message: 'Решение успешно загружено!' });
+});
+
+// 5. Маршруты для АДМИНИСТРАТОРА (защищенные)
+// Простая защита: проверяем секретный заголовок
+const adminAuth = (req, res, next) => {
+    if (req.headers['x-admin-secret'] === process.env.ADMIN_SECRET) {
+        next();
+    } else {
+        res.status(403).send('Доступ запрещен');
+    }
+};
+
+app.post('/api/admin/cases', adminAuth, async (req, res) => {
+    // Логика создания нового кейса
+    const { title, description, ispringUrl, ageCategory } = req.body;
+    const newCase = new Case({ title, description, ispringUrl, ageCategory });
+    await newCase.save();
+    res.status(201).json(newCase);
+});
+
+// --- ЭКСПОРТ ДЛЯ VERCEL ---
 module.exports = app;

@@ -11,8 +11,10 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "body-parser": "^2.2.0",
     "express": "^5.1.0",
     "googleapis": "^150.0.1",
+    "mongoose": "^8.15.1",
     "multer": "^2.0.1"
   }
 }
