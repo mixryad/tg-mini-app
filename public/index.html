@@ -2,34 +2,89 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Загрузка на Диск</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+    <title>Битва с Драконом</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
-        <div id="upload-area">
+
+    <!-- === ЭКРАН ЗАГРУЗКИ (показывается при запуске) === -->
+    <div id="loading-screen" class="screen active">
+        <div class="spinner"></div>
+        <p>Подключаемся к серверу...</p>
+    </div>
+
+    <!-- === ЭКРАН РЕГИСТРАЦИИ === -->
+    <div id="registration-screen" class="screen">
+        <div class="container">
             <div class="icon-container">
-                <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="feather feather-upload-cloud"><path d="M16 16.12a5 5 0 0 0-11.23 2.15 6 6 0 0 0 .58 11.53h10.15A5 5 0 0 0 22 16.7a5 5 0 0 0-6-5.58z"/><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/></svg>
+                <img src="https://em-content.zobj.net/source/apple/354/dragon_1f409.png" alt="dragon" class="dragon-icon">
             </div>
-            <h1>Загрузить файл на Диск</h1>
-            <p>Выберите любой файл, и он будет отправлен в вашу папку на Google Drive.</p>
-            <button id="select-file-button">Выбрать файл</button>
-            <input type="file" id="file-input" hidden>
-        </div>
-        <div id="status-area" class="hidden">
-            <div class="spinner"></div>
-            <p id="status-text">Загрузка...</p>
-        </div>
-        <div id="success-area" class="hidden">
-             <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#34C759" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-check-circle"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-            <h2>Успешно!</h2>
-            <p id="success-text">Файл был загружен на ваш Google Диск.</p>
-            <button id="upload-another-button">Загрузить еще</button>
+            <h1>Битва с Драконом</h1>
+            <p>Чтобы вступить в турнир, выбери свою возрастную категорию.</p>
+            
+            <div id="age-category-selector">
+                <button class="age-button" data-category="6-7">6-7 классы</button>
+                <button class="age-button" data-category="8-9">8-9 классы</button>
+                <button class="age-button" data-category="10-11">10-11 классы</button>
+            </div>
+            <p id="registration-error" class="error-text"></p>
         </div>
     </div>
 
-    <!-- Подключаем Telegram Web App API -->
+    <!-- === ГЛАВНЫЙ ЭКРАН (ДАШБОРД УЧАСТНИКА) === -->
+    <div id="main-screen" class="screen">
+        <div class="container">
+            <h1 id="main-title">Ваши кейсы</h1>
+            <div id="cases-list">
+                <!-- Карточки кейсов будут вставляться сюда с помощью JS -->
+            </div>
+            <button id="admin-panel-button" class="hidden">Панель Администратора</button>
+        </div>
+    </div>
+
+    <!-- === ЭКРАН ЗАГРУЗКИ РЕШЕНИЯ === -->
+    <div id="upload-screen" class="screen">
+        <div class="container">
+            <div id="upload-area">
+                <div class="icon-container">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="feather feather-upload-cloud"><path d="M16 16.12a5 5 0 0 0-11.23 2.15 6 6 0 0 0 .58 11.53h10.15A5 5 0 0 0 22 16.7a5 5 0 0 0-6-5.58z"/><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/></svg>
+                </div>
+                <h1 id="upload-title">Отправить решение</h1>
+                <p id="upload-description">Выберите файл с решением для кейса.</p>
+                <button id="select-file-button">Выбрать файл</button>
+                <input type="file" id="file-input" hidden>
+            </div>
+            <div id="status-area" class="hidden">
+                <div class="spinner"></div>
+                <p id="status-text">Загрузка...</p>
+            </div>
+             <button id="back-to-main-button">Назад к кейсам</button>
+        </div>
+    </div>
+    
+    <!-- === ПАНЕЛЬ АДМИНИСТРАТОРА === -->
+    <div id="admin-panel" class="screen">
+        <div class="container">
+            <h1>Панель Администратора</h1>
+            <div class="form-container">
+                <h2>Создать новый кейс</h2>
+                <input type="text" id="admin-case-title" placeholder="Название кейса">
+                <textarea id="admin-case-description" placeholder="Краткое описание"></textarea>
+                <input type="url" id="admin-case-url" placeholder="Ссылка на iSpring Page">
+                <select id="admin-case-category">
+                    <option value="6-7">6-7 классы</option>
+                    <option value="8-9">8-9 классы</option>
+                    <option value="10-11">10-11 классы</option>
+                </select>
+                <button id="create-case-button">Создать кейс</button>
+                <p id="admin-status" class="status-text"></p>
+            </div>
+             <button id="admin-back-button">Назад к кейсам</button>
+        </div>
+    </div>
+
+    <!-- Подключаем скрипты -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="script.js"></script>
 </body>
