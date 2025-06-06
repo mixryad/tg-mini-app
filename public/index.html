@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Загрузка на Диск</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div id="upload-area">
+            <div class="icon-container">
+                <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="feather feather-upload-cloud"><path d="M16 16.12a5 5 0 0 0-11.23 2.15 6 6 0 0 0 .58 11.53h10.15A5 5 0 0 0 22 16.7a5 5 0 0 0-6-5.58z"/><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/></svg>
+            </div>
+            <h1>Загрузить файл на Диск</h1>
+            <p>Выберите любой файл, и он будет отправлен в вашу папку на Google Drive.</p>
+            <button id="select-file-button">Выбрать файл</button>
+            <input type="file" id="file-input" hidden>
+        </div>
+        <div id="status-area" class="hidden">
+            <div class="spinner"></div>
+            <p id="status-text">Загрузка...</p>
+        </div>
+        <div id="success-area" class="hidden">
+             <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#34C759" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-check-circle"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            <h2>Успешно!</h2>
+            <p id="success-text">Файл был загружен на ваш Google Диск.</p>
+            <button id="upload-another-button">Загрузить еще</button>
+        </div>
+    </div>
+
+    <!-- Подключаем Telegram Web App API -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
