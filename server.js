@@ -11,7 +11,8 @@ const port = 3000;
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Настройки для приема файлов
-const upload = multer({ dest: 'uploads/' }); // Временная папка для файлов
+const storage = multer.memoryStorage(); // Используем хранилище в памяти
+const upload = multer({ storage: storage });
 
 // Настройки Google Drive API
 const SCOPES = ['https://www.googleapis.com/auth/drive'];
@@ -41,7 +42,7 @@ app.post('/upload', upload.single('file'), async (req, res) => {
         }
 
         const drive = google.drive({ version: 'v3', auth });
-        const { path: filePath, originalname, mimetype } = req.file;
+        const { originalname, mimetype, buffer } = req.file; // Теперь у нас есть buffer вместо path
 
         const response = await drive.files.create({
             requestBody: {
@@ -51,12 +52,11 @@ app.post('/upload', upload.single('file'), async (req, res) => {
             },
             media: {
                 mimeType: mimetype,
-                body: fs.createReadStream(filePath),
+                body: require('stream').Readable.from(buffer), // Превращаем буфер в поток для отправки
             },
         });
 
-        // Удаляем временный файл после загрузки
-        fs.unlinkSync(filePath);
+        // Удалять временный файл больше не нужно!
 
         console.log('Файл успешно загружен:', response.data);
         res.status(200).json({ message: 'Файл успешно загружен!', file: response.data });
@@ -65,8 +65,4 @@ app.post('/upload', upload.single('file'), async (req, res) => {
         console.error('Ошибка при загрузке файла:', error.message);
         res.status(500).send('Произошла ошибка на сервере.');
     }
-});
-
-app.listen(port, () => {
-    console.log(`Сервер запущен на http://localhost:${port}`);
 });
