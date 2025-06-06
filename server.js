@@ -14,11 +14,17 @@ app.use(express.static(path.join(__dirname, 'public')));
 const upload = multer({ dest: 'uploads/' }); // Временная папка для файлов
 
 // Настройки Google Drive API
-const KEYFILEPATH = path.join(__dirname, 'credentials.json');
 const SCOPES = ['https://www.googleapis.com/auth/drive'];
 
+// Проверяем, есть ли переменная окружения с ключом
+if (!process.env.GOOGLE_CREDENTIALS) {
+    throw new Error('Переменная окружения GOOGLE_CREDENTIALS не найдена!');
+}
+
+const credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS);
+
 const auth = new google.auth.GoogleAuth({
-    keyFile: KEYFILEPATH,
+    credentials, // Используем объект с данными вместо пути к файлу
     scopes: SCOPES,
 });
 
